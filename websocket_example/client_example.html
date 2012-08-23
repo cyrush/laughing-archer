@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>WebSocket Client</title>
+    <style>
+        #output {
+            border: solid 1px #000;
+        }
+    </style>
+    <script src="jquery-1.8.0.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+     $(document).ready(function() {
+        try {
+
+            var host = "ws://localhost:9876/";
+            var s;
+            if ( $.browser.mozilla ) {
+                // firefox
+                s = new MozWebSocket(host);
+            } else {
+                // other browsers
+               s = new WebSocket(host);
+            }
+
+            console.log("Host:", host);
+
+
+            s.onopen = function (e) {
+            console.log("Socket opened.");
+            };
+
+            s.onclose = function (e) {
+                console.log("Socket closed.");
+            };
+
+            s.onmessage = function (e) {
+                console.log("Socket message:", e.data);
+                var msg = JSON.parse(e.data);
+                $("#output").append("<p>" + msg.answer + "</p>")
+            };
+
+            s.onerror = function (e) {
+                console.log("Socket error:", e);
+            };
+
+        } catch (ex) {
+            console.log("Socket exception:", ex);
+        }
+
+        $("#form").submit(
+        //form.addEventListener("submit", 
+        function (e) {
+            console.log("Sending",$("#message").val());
+            e.preventDefault();
+            s.send($("#message").val());
+            $("#message").val("");
+        //}, false)
+        });
+        });
+</script>
+</head>
+<body>
+
+
+    <form id="form">
+        <input type="text" id="message">
+        <button type="submit">Send</button>
+    </form>
+    <hr>
+    <div id="output"></div>
+
+
+</body>
+</html>
