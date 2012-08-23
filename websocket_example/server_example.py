@@ -5,6 +5,11 @@ from base64 import b64encode
 from hashlib import sha1
 from mimetools import Message
 from StringIO import StringIO
+import thread
+import base64
+from visit import *
+
+#Launch()
 
 class WebSocketsHandler(SocketServer.StreamRequestHandler):
     magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -31,7 +36,12 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
         decoded = ""
         for char in self.rfile.read(length):
             decoded += chr(ord(char) ^ masks[len(decoded) % 4])
-        self.on_message(decoded)
+
+        command = decoded
+	fimg = open("image.jpg","r")
+	contents = fimg.read()
+	encoded = "data:image/jpg;base64," + base64.b64encode(contents)
+        self.on_message("Image",encoded)
 
     def send_message(self, message):
         self.request.send(chr(129))
@@ -39,10 +49,10 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
         if length <= 125:
             self.request.send(chr(length))
         elif length >= 126 and length <= 65535:
-            self.request.send(126)
+            self.request.send(chr(126))
             self.request.send(struct.pack(">H", length))
         else:
-            self.request.send(127)
+            self.request.send(chr(127))
             self.request.send(struct.pack(">Q", length))
         self.request.send(message)
 
@@ -61,14 +71,16 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
         self.handshake_done = self.request.send(response)
         print 'Handshake done.'
 
-    def on_message(self, message):
+    def on_message(self, type, message):
         if message != "":
-            res = {"answer": "back at you: " + message,
-                "rtype": "txt"}
+            res = {"blob": message,
+                "rtype": type}
             print "Sending: ", res
+            a = json.dumps(res)
             self.send_message(json.dumps(res))
 
 if __name__ == "__main__":
     server = SocketServer.TCPServer(
         ("localhost", 9876), WebSocketsHandler)
     server.serve_forever()
+    #thread.start_new_thread(server.serve_forever,())
