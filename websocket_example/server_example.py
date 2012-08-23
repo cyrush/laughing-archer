@@ -9,7 +9,6 @@ import thread
 import base64
 from visit import *
 
-#Launch()
 
 class WebSocketsHandler(SocketServer.StreamRequestHandler):
     magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -38,10 +37,22 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
             decoded += chr(ord(char) ^ masks[len(decoded) % 4])
 
         command = decoded
-	fimg = open("image.jpg","r")
-	contents = fimg.read()
-	encoded = "data:image/jpg;base64," + base64.b64encode(contents)
-        self.on_message("Image",encoded)
+        res = json.loads(command)
+        print res["py"]
+        exec(res["py"])
+        swa = SaveWindowAttributes()
+        swa.family = 0
+        swa.format = swa.PNG
+        swa.width  =  res["width"]
+        swa.height =  res["height"]
+        swa.fileName = "vportal"
+        SetSaveWindowAttributes(swa)
+        r = SaveWindow()
+        fimg = open(r,"rb")
+        #fimg = open("image.jpg","r")
+        contents = fimg.read()
+        encoded = "data:image/png;base64," + base64.b64encode(contents)
+        self.on_message("image",encoded)
 
     def send_message(self, message):
         self.request.send(chr(129))
@@ -75,12 +86,12 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
         if message != "":
             res = {"blob": message,
                 "rtype": type}
-            print "Sending: ", res
             a = json.dumps(res)
             self.send_message(json.dumps(res))
 
 if __name__ == "__main__":
     server = SocketServer.TCPServer(
         ("localhost", 9876), WebSocketsHandler)
+    server.allow_reuse_address = True 
     server.serve_forever()
     #thread.start_new_thread(server.serve_forever,())

@@ -36,7 +36,14 @@
             s.onmessage = function (e) {
                 console.log("Socket message:", e.data);
                 var msg = JSON.parse(e.data);
-                $("#output").append("<p>" + msg.answer + "</p>")
+                if(msg.rtype == "image")
+                {
+                    $("#image_dest").html("<img src='" + msg.blob + "'/>");
+                }
+                else
+                {
+                    $("#info").html("<p><b>response:</b> " + msg.answer + "</p>")
+                }
             };
 
             s.onerror = function (e) {
@@ -48,13 +55,13 @@
         }
 
         $("#form").submit(
-        //form.addEventListener("submit", 
         function (e) {
             console.log("Sending",$("#message").val());
             e.preventDefault();
-            s.send($("#message").val());
+            msg = {"msg": $("#message").val(), "py": $("#pysource").val() + "\n",
+                   "width": 800, "height": 800};
+            s.send(JSON.stringify(msg));
             $("#message").val("");
-        //}, false)
         });
         });
 </script>
@@ -63,11 +70,19 @@
 
 
     <form id="form">
-        <input type="text" id="message">
-        <button type="submit">Send</button>
+        <table>
+        <tr><td>msg:</td><td><input type="text" id="message"></td></tr>
+        <tr><td>py:</td><td><textarea id="pysource" cols="40" rows="10">
+OpenDatabase("noise.silo")
+AddPlot("Pseudocolor","hardyglobal")
+DrawPlots()</textarea></td></tr>
+        <td><td colspan=2 align=right><button type="submit">Send</button></td></tr>
+        </table>
     </form>
     <hr>
-    <div id="output"></div>
+    <div id="info"></div>
+    <div id="image_dest"></div>
+
 
 
 </body>
