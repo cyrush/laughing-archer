@@ -40,27 +40,32 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
         decoded = ""
         for char in self.rfile.read(length):
             decoded += chr(ord(char) ^ masks[len(decoded) % 4])
-
-        command = decoded
-        res = json.loads(command)
-        print res["py"]
-        exec(res["py"])
-        if res["rtype"] == "image":
-            swa = SaveWindowAttributes()
-            swa.family = 0
-            swa.format = swa.PNG
-            swa.width  =  res["width"]
-            swa.height =  res["height"]
-            swa.fileName = "vportal"
-            SetSaveWindowAttributes(swa)
-            r = SaveWindow()
-            fimg = open(r,"rb")
-            contents = fimg.read()
-            encoded = "data:image/png;base64," + base64.b64encode(contents)
-            self.on_message("image",encoded)
-        else:
-            res = GetJSON()
-            print res 
+        try:
+            command = decoded
+            res = json.loads(command)
+            #exe python code
+            if not os.path.isdir("_stuff"):
+                os.mkdir("_stuff")
+            exec(res["py"])
+            if res["rtype"] == "image":
+                swa = SaveWindowAttributes()
+                swa.family = 0
+                swa.format = swa.PNG
+                swa.width  =  res["width"]
+                swa.height =  res["height"]
+                swa.fileName = "_stuff/vportal"
+                SetSaveWindowAttributes(swa)
+                r = SaveWindow()
+                fimg = open(r,"rb")
+                contents = fimg.read()
+                encoded = "data:image/png;base64," + base64.b64encode(contents)
+                self.on_message("image",encoded)
+            else:
+                res = GetJSON()
+                self.on_message("json",res)
+        except Exception as e:
+            print e
+            print "exception: ignoring!"
 
     def send_message(self, message):
         self.request.send(chr(129))
@@ -101,5 +106,5 @@ if __name__ == "__main__":
     server = TCPServer(
         ("localhost", 9876), WebSocketsHandler)
     server.allow_reuse_address = True 
-    server.serve_forever()
-    #thread.start_new_thread(server.serve_forever,())
+    #server.serve_forever()
+    thread.start_new_thread(server.serve_forever,())

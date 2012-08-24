@@ -1,8 +1,9 @@
 import os
 from visit import *
 from convert_obj_three import convert_ascii, convert_binary
+import json
 
-def GetJSON(filebase="visit", TYPE="ascii"):
+def GetJSON(filebase="_stuff/visit", TYPE="ascii"):
     # Save the window as OBJ file format.
     swa = GetSaveWindowAttributes()
     swa.fileName = filebase
@@ -35,8 +36,8 @@ def GetJSON(filebase="visit", TYPE="ascii"):
         else:
             convert_binary(f, outfile)
         # Read the json back in
-        json = open(outfile, "rb").read()
-        jsons = jsons + [json]
+        cydumb = json.loads(open(outfile).read())
+        jsons.append(cydumb)
     return jsons
 
 # #####################################################
