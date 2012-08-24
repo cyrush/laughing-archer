@@ -1,3 +1,4 @@
+DeleteAllPlots()
 OpenDatabase("noise.silo")
 AddPlot("Pseudocolor","hardyglobal")
 AddOperator("Isosurface")

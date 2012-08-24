@@ -40,6 +40,10 @@
 
                 socket.onclose = function (e) {
                     console.log("Socket closed.");
+                    $("#connstat").html("(Not connected)");
+                    $("#rtype").attr("disabled", "disabled");
+                    $("#pysource").attr("disabled", "disabled");
+                    $("#go").attr("disabled", "disabled");
                 };
 
                 socket.onmessage = function (e) {

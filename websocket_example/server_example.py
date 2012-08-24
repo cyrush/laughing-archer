@@ -46,25 +46,34 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
         #exe python code
         if not os.path.isdir("_stuff"):
             os.mkdir("_stuff")
-        exec(res["py"])
-        if res["rtype"] == "image":
-            swa = SaveWindowAttributes()
-            swa.family = 0
-            swa.format = swa.PNG
-            swa.width  =  res["width"]
-            swa.height =  res["height"]
-            swa.fileName = "_stuff/vportal"
-            SetSaveWindowAttributes(swa)
-            r = SaveWindow()
-            fimg = open(r,"rb")
-            contents = fimg.read()
-            encoded = "data:image/png;base64," + base64.b64encode(contents)
-            self.on_message("txt","here is your image result")
-            self.on_message("image",encoded)
-        else:
-            res = GetJSON()
-            self.on_message("txt","here is your JSON result")
-            self.on_message("json",res)
+        try:
+            exec(res["py"])
+            using_sr = GetWindowInformation().usingScalableRendering == 1
+            if using_sr:
+                res["rtype"] = "image"
+            if res["rtype"] == "image":
+                swa = SaveWindowAttributes()
+                swa.family = 0
+                swa.format = swa.PNG
+                swa.width  =  res["width"]
+                swa.height =  res["height"]
+                swa.fileName = "_stuff/vportal"
+                SetSaveWindowAttributes(swa)
+                r = SaveWindow()
+                fimg = open(r,"rb")
+                contents = fimg.read()
+                encoded = "data:image/png;base64," + base64.b64encode(contents)
+                if using_sr:
+                    self.on_message("txt","here is your image result (perhaps forced by SR)")
+                else:
+                    self.on_message("txt","here is your image result")
+                self.on_message("image",encoded)
+            else:
+                res = GetJSON()
+                self.on_message("txt","here is your JSON result")
+                self.on_message("json",res)
+        except Exception as e:
+            self.on_message("txt","<b><i>Python Exception: </i></b> " + str(e))
 
     def send_message(self, message):
         self.request.send(chr(129))
