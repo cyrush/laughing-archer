@@ -41,12 +41,16 @@
                 var msg = JSON.parse(e.data);
                 if(msg.rtype == "image")
                 {
+                    $("#container").hide();
                     $("#image_dest").html("<img src='" + msg.blob + "'/>");
+                    $("#image_dest").show();
                 }
                 else if(msg.rtype == "json")
                 {
+                    $("#image_dest").hide();
                     for(i=0;i<msg.blob.length;i++)
                         monkeyfi(msg.blob[i])
+                    $("#container").show();
                 }
                 else
                 {
@@ -66,12 +70,10 @@
 
         $("#form").submit(
         function (e) {
-            console.log("Sending",$("#message").val());
             e.preventDefault();
-            msg = {"msg": $("#message").val(), "py": $("#pysource").val() + "\n",
-                   "width": 800, "height": 800, "rtype": "json"};
+            msg = {"msg": "working", "py": $("#pysource").val() + "\n",
+                   "width": 800, "height": 800, "rtype": $("#rtype").val() };
             s.send(JSON.stringify(msg));
-            $("#message").val("");
         });
         
 
@@ -187,14 +189,17 @@
 
 
     <form id="form">
-        <table>
-        <tr><td>msg:</td><td><input type="text" id="message"></td></tr>
-        <tr><td>py:</td><td><textarea id="pysource" cols="40" rows="10">
+        rtype:<br>
+        <select id="rtype">
+          <option value="json">Geometry</option>
+          <option value="image">Image</option>
+        </select><br>
+        py: <br>
+        <textarea id="pysource" cols="40" rows="10">
 OpenDatabase("noise.silo")
 AddPlot("Pseudocolor","hardyglobal")
-DrawPlots()</textarea></td></tr>
-        <td><td colspan=2 align=right><button type="submit">Send</button></td></tr>
-        </table>
+DrawPlots()</textarea>
+        <button>Send</button><br>
     </form>
     <hr>
     <div id="info"></div>
