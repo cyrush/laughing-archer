@@ -59,7 +59,7 @@
             console.log("Sending",$("#message").val());
             e.preventDefault();
             msg = {"msg": $("#message").val(), "py": $("#pysource").val() + "\n",
-                   "width": 800, "height": 800};
+                   "width": 800, "height": 800, "rtype": "image"};
             s.send(JSON.stringify(msg));
             $("#message").val("");
         });
