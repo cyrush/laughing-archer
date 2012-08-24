@@ -12,6 +12,8 @@
 <link type="text/css" rel="stylesheet" href="css/ssa-ui.css">
 
 <script type="text/javascript">
+
+ $(document).ready(function() { load(); });
 function loadSphere(scene)
 {
     var geometry = new THREE.SphereGeometry(1, 16, 8);
@@ -60,18 +62,31 @@ function setupSocket()
             console.log("Socket closed.");
         };
 
-        socket.onmessage = function (e) {
-            console.log("Socket message:", e.data);
-            var msg = JSON.parse(e.data);
-            var div = document.getElementById('0');
-            div.innerHTML = msg.answer;
-        };
 
+        socket.onmessage = function (e) {
+            var msg = JSON.parse(e.data);
+            if(msg.rtype == "image")
+            {
+                $("#shipit-visit").hide();
+                $("#image_dest").html("<img src='" + msg.blob + "'/>");
+                $("#image_dest").show();
+            }
+            else if(msg.rtype == "json")
+            {
+                $("#image_dest").hide();
+                $("#shipit-visit").show();
+            }
+            else
+            {
+                console.log("Socket message:", e.data);
+                //$("#info").html("<p><b>response:</b> " + msg.answer + "</p>")
+            }   
+            };
         socket.onerror = function (e) {
             console.log("Socket error:", e);
         };
-    } catch (e) {
-        console.log("Socket exception:", e);
+   } catch (e) {
+        //console.log("Socket exception:", e);
     }
 }
 </script>
@@ -244,21 +259,26 @@ $(function() {
 $(function() {
     $('#send').button()
     .click(function() {
-        msg = {"msg": $("#message").val(), "py": "" + "\n",
-               "width": 800, "height": 800, "rtype":"json"};
+        msg = {"py": $("#message").val(), "msg": "working", 
+               "width": 800, "height": 800, "rtype": $("#rtype").val()};
         socket.send(JSON.stringify(msg));
     });
 });
 </script>
 </head>
 
-<body onload="load();">
 
 <div id="shipit-visit"></div>
 
+<div id="image_dest"></div>
+
 <div id="control-panel" class="ui-widget ui-corner-all ssa-panel">
     <div class="ssa-buttonset">
-        <input type="text" id="message">
+        <select id="rtype">
+          <option value="json">Geometry</option>
+          <option value="image">Image</option>
+        </select>
+        <input type="text" id="message" value='Source("example1.py")'>
         <input type="submit" id="send" value="Send">
     </div>
 </div>
