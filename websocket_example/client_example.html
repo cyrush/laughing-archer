@@ -84,7 +84,7 @@
 
             var container = document.getElementById( 'container' );
 
-            camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+            camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, .1, 10000 );
             camera.position.set( 0, - 6, 60 );
 
             scene = new THREE.Scene();
@@ -138,8 +138,23 @@
         {
             loader = new THREE.JSONLoader();
             loader.createModel(data,function ( geometry ) {
+                
+                attributes = {
+                        texcoord: {	type: 'v2', value: [] },
+                    };
+
+                    uniforms = {
+                        vcolor:     { type: "c", value: new THREE.Color( 0xff0000 ) }
+                    };
                 //mesh = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial( { overdraw: true } ) );
-                mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 0xff0000 } ) );
+            	// create the sphere's material
+            	var shaderMaterial = new THREE.ShaderMaterial({
+            		vertexShader:   $('#vertexshader').text(),
+            		fragmentShader: $('#fragmentshader').text()
+            	});
+                //var mat = new THREE.MeshBasicMaterial( { color: 0xff0000 } ) 
+                
+                mesh = new THREE.Mesh( geometry, shaderMaterial);
                 scene.add( mesh );
             } );
         }
@@ -149,6 +164,36 @@
 </script>
 </head>
 <body>
+    <!-- Shaders -->
+	<script type="x-shader/x-vertex" id="vertexshader">
+
+		// switch on high precision floats
+		#ifdef GL_ES
+		precision highp float;
+		#endif
+        varying vec2 vUv;
+		void main()
+		{
+		    //v_texcoord = texcoord;
+		    vUv = uv;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+		}
+
+	</script>
+    
+	<script type="x-shader/x-fragment" id="fragmentshader">
+
+		#ifdef GL_ES
+		precision highp float;
+		#endif
+
+        varying vec2 vUv;
+		void main()
+		{
+			gl_FragColor = vec4(1.0-vUv.x,vUv.x,1.0-vUv.x,1.0);
+		}
+
+	</script>
 
 
     <form id="form">

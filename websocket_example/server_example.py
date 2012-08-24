@@ -58,9 +58,11 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
             fimg = open(r,"rb")
             contents = fimg.read()
             encoded = "data:image/png;base64," + base64.b64encode(contents)
+            self.on_message("txt","here is your image result")
             self.on_message("image",encoded)
         else:
             res = GetJSON()
+            self.on_message("txt","here is your JSON result")
             self.on_message("json",res)
 
     def send_message(self, message):
@@ -93,8 +95,11 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
 
     def on_message(self, type, message):
         if message != "":
-            res = {"blob": message,
-                "rtype": type}
+            res = { "rtype": type}
+            if type == "txt":
+                res["answer"] = message
+            else:
+                res["blob"] = message
             a = json.dumps(res)
             self.send_message(json.dumps(res))
 
