@@ -1,0 +1,266 @@
+<html>
+<head>
+<title>ShipIt - VisIt</title>
+
+<script type="text/javascript" src="js/jquery-1.8.0.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.23.min.js"></script>
+<script type="text/javascript" src="js/jquery.mousewheel.js"></script>
+<script type="text/javascript" src="js/three.min.js"></script>
+<script type="text/javascript" src="js/Detector.js"></script>
+
+<link type="text/css" rel="stylesheet" href="css/jquery-ui-1.8.23.css">
+<link type="text/css" rel="stylesheet" href="css/ssa-ui.css">
+
+<script type="text/javascript">
+function loadSphere(scene)
+{
+    var geometry = new THREE.SphereGeometry(1, 16, 8);
+    var material = new THREE.MeshPhongMaterial({color: 0xffff00});
+    
+    var mesh = new THREE.Mesh(geometry, material);
+    mesh.matrixAutoUpdate = false;
+    mesh.updateMatrix();
+    scene.add(mesh);
+}
+
+var overlays = {};
+
+function addOverlay(id, text)
+{
+    var div = document.createElement('div');
+    div.id = id;
+    div.className = 'ssa-overlay';
+    div.innerHTML = text;
+    
+    document.body.appendChild(div);
+    overlays[id] = div;
+    render();
+}
+
+var socket;
+
+function setupSocket()
+{
+    try {
+        var host = "ws://localhost:9876/";
+        if ( $.browser.mozilla ) {
+            // firefox
+            socket = new MozWebSocket(host);
+        } else {
+            // other browsers
+           socket = new WebSocket(host);
+        }
+        console.log("Host:", host);
+
+        socket.onopen = function (e) {
+            console.log("Socket opened.");
+        };
+
+        socket.onclose = function (e) {
+            console.log("Socket closed.");
+        };
+
+        socket.onmessage = function (e) {
+            console.log("Socket message:", e.data);
+            var msg = JSON.parse(e.data);
+            var div = document.getElementById('0');
+            div.innerHTML = msg.answer;
+        };
+
+        socket.onerror = function (e) {
+            console.log("Socket error:", e);
+        };
+    } catch (e) {
+        console.log("Socket exception:", e);
+    }
+}
+</script>
+
+<script type="text/javascript">
+var width = window.innerWidth, height = window.innerHeight;
+var renderer, camera, controls, scene;
+
+function load()
+{
+    if (!Detector.webgl) {
+        Detector.addGetWebGLMessage();
+        return;
+    }
+    setupSocket();
+    
+    renderer = new THREE.WebGLRenderer({
+        clearAlpha: 1, 
+        clearColor: 0x000000, 
+        antialias: true
+    });
+    renderer.setSize(width, height);
+    renderer.sortObjects = false;   
+    renderer.autoClear = false;
+    render.autoUpdateScene = false;
+    render.autoUpdateObjects = false;
+    //renderer.gammaInput = true;
+    //renderer.gammaOutput = true;
+
+    var container = document.getElementById('shipit-visit'); 
+    container.appendChild(renderer.domElement);
+
+    camera = new THREE.PerspectiveCamera(45, width/height, 0.1, 1000);
+    camera.position.z = 4;
+
+    controls = new THREE.TrackballControls(camera, renderer.domElement);
+    controls.rotateSpeed = 0.5;
+    controls.dynamicDampingFactor = 0.5;
+    
+    var light = new THREE.DirectionalLight(0xffffff);
+    light.position = camera.position;
+    
+    scene = new THREE.Scene();
+    scene.add(camera);
+    scene.add(light);
+    
+    loadSphere(scene);
+    addOverlay(0, 'hello');
+
+    window.addEventListener('resize', onWindowResize, false);
+    controls.addEventListener('change', render);
+
+    //container.addEventListener('mousewheel', onMouseWheel, false);  // Chrome
+    //container.addEventListener('DOMMouseScroll', onMouseWheel, false);  // Firefox
+    
+    animate();
+    resizePanel();
+}
+
+function onWindowResize(event)
+{
+    width  = window.innerWidth;
+    height = window.innerHeight;
+
+    renderer.setSize(width, height);
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    controls.screen.width = width;
+    controls.screen.height = height;
+    controls.radius = 0.25 * (width + height);
+    
+    render();
+    resizePanel();
+}
+
+function resizePanel()
+{
+    var wid = width - 100;  // 50*2 = 100
+    var hgt = 44;
+
+    if (wid < 640) wid = 640;
+    else if (wid > 1280) wid = 1280;
+    
+    var posx = Math.floor(0.5 * (width - wid));
+    var posy = height - (hgt + 10);
+    
+    if (posx < 10) posx = 10;
+    
+    var control = document.getElementById('control-panel').style;
+    control.width = wid + 'px';
+    control.height = hgt + 'px';
+    control.left = posx + 'px';
+    control.top = posy + 'px';
+}
+
+function animate()
+{
+    requestAnimationFrame(animate);
+    controls.update();
+}
+
+function render()
+{
+    renderer.clear();
+    renderer.render(scene, camera);
+    renderOverlays();
+}
+
+function renderOverlays()
+{
+    var cam = camera.position;
+    var d, mat;
+
+    for (var i in overlays) {
+        var p = new THREE.Vector3(0, 0, 1.2);
+        var dx = cam.x - p.x;
+        var dy = cam.y - p.y;
+        var dz = cam.z - p.z;
+        
+        var a = dx*dx + dy*dy + dz*dz;
+        if (d == undefined)
+            d = cam.x*cam.x + cam.y*cam.y + cam.z*cam.z;
+        
+        var text = overlays[i];
+        
+        // if object is farther from camera than Earth center, then determine if it is occluded by Earth
+        // occlusion test is based on line (from camera to object) intersecting sphere at (0,0,0)
+        if (a > d) {
+            var b = 2 * (dx*p.x + dy*p.y + dz*p.z);
+            var c = p.x*p.x + p.y*p.y + p.z*p.z - 1;
+
+            if (b*b > 4*a*c) {
+                text.style.visibility = 'hidden';
+                continue;
+            }
+        }
+        text.style.visibility = 'visible';  
+        
+        var size = (10 - Math.log(a)) * 5;
+        if (size < 8) size = 8;
+        text.style.fontSize = size + 'px';
+
+        if (mat == undefined) {
+            mat = new THREE.Matrix4();
+            mat.multiply(camera.projectionMatrix, camera.matrixWorldInverse);
+        }
+        var pos = p.clone();
+        mat.multiplyVector3(pos);
+        
+        var x = 0.5 * (( pos.x + 1) * width - text.clientWidth);
+        var y = 0.5 * ((-pos.y + 1) * height);
+        
+        text.style.left = x + 'px';
+        text.style.top = y + 'px';
+    }
+}
+</script>
+
+<script type="text/javascript">
+$(function() {
+    $('#shipit-visit').bind('mousewheel', function(e, d, dX, dY) {
+	    e.preventDefault();
+	    camera.position.multiplyScalar(1 - 0.1 * d);
+	    controls.update();
+	});
+});
+
+$(function() {
+    $('#send').button()
+    .click(function() {
+        msg = {"msg": $("#message").val(), "py": "" + "\n",
+               "width": 800, "height": 800, "rtype":"json"};
+        socket.send(JSON.stringify(msg));
+    });
+});
+</script>
+</head>
+
+<body onload="load();">
+
+<div id="shipit-visit"></div>
+
+<div id="control-panel" class="ui-widget ui-corner-all ssa-panel">
+    <div class="ssa-buttonset">
+        <input type="text" id="message">
+        <input type="submit" id="send" value="Send">
+    </div>
+</div>
+</body>
+</html>
