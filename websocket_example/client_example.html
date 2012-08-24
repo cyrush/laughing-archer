@@ -11,74 +11,73 @@
     <script src="three.min.js"></script>
     <script type="text/javascript">
     var camera, scene, renderer, controls,
-    loader, mesh;
+        socket, loader, mesh;
     
-     $(document).ready(function() {
-        try {
+    function vconnect()
+    {
+        var host = "ws://" + $("#vhost").val() + ":" + $("#vport").val() + "/"
+         try {
 
-            var host = "ws://localhost:9876/";
-            var s;
-            if ( $.browser.mozilla ) {
-                // firefox
-                s = new MozWebSocket(host);
-            } else {
-                // other browsers
-               s = new WebSocket(host);
+                if ( $.browser.mozilla ) {
+                    // firefox
+                    try{
+                        socket = new MozWebSocket(host);
+                    }catch(ex){
+                        socket = new WebSocket(host);
+                    }
+                        
+                } else {
+                    // other browsers
+                   socket = new WebSocket(host);
+                }
+
+                console.log("Host:", host);
+
+
+                socket.onopen = function (e) {
+                    console.log("Socket opened.");
+                };
+
+                socket.onclose = function (e) {
+                    console.log("Socket closed.");
+                };
+
+                socket.onmessage = function (e) {
+                    var msg = JSON.parse(e.data);
+                    if(msg.rtype == "image")
+                    {
+                        $("#container").hide();
+                        $("#image_dest").html("<img src='" + msg.blob + "'/>");
+                        $("#image_dest").show();
+                    }
+                    else if(msg.rtype == "json")
+                    {
+                        $("#image_dest").hide();
+                        for(i=0;i<msg.blob.length;i++)
+                            monkeyfi(msg.blob[i])
+                        $("#container").show();
+                    }
+                    else
+                    {
+                        console.log("Socket message:", e.data);
+                        $("#info").html("<p><b>response:</b> " + msg.answer + "</p>")
+                    }
+
+                };
+
+                socket.onerror = function (e) {
+                    console.log("Socket error:", e);
+                };
+            $("#rtype").removeAttr("disabled"); 
+            $("#pysource").removeAttr("disabled"); 
+            $("#go").removeAttr("disabled"); 
+            $("#connstat").html("Connected to: " + host);
+            } catch (ex) {
+                console.log("Socket exception:", ex);
             }
+    }
+    
 
-            console.log("Host:", host);
-
-
-            s.onopen = function (e) {
-            console.log("Socket opened.");
-            };
-
-            s.onclose = function (e) {
-                console.log("Socket closed.");
-            };
-
-            s.onmessage = function (e) {
-                var msg = JSON.parse(e.data);
-                if(msg.rtype == "image")
-                {
-                    $("#container").hide();
-                    $("#image_dest").html("<img src='" + msg.blob + "'/>");
-                    $("#image_dest").show();
-                }
-                else if(msg.rtype == "json")
-                {
-                    $("#image_dest").hide();
-                    for(i=0;i<msg.blob.length;i++)
-                        monkeyfi(msg.blob[i])
-                    $("#container").show();
-                }
-                else
-                {
-                    console.log("Socket message:", e.data);
-                    $("#info").html("<p><b>response:</b> " + msg.answer + "</p>")
-                }
-
-            };
-
-            s.onerror = function (e) {
-                console.log("Socket error:", e);
-            };
-
-        } catch (ex) {
-            console.log("Socket exception:", ex);
-        }
-
-        $("#form").submit(
-        function (e) {
-            e.preventDefault();
-            msg = {"msg": "working", "py": $("#pysource").val() + "\n",
-                   "width": 800, "height": 800, "rtype": $("#rtype").val() };
-            s.send(JSON.stringify(msg));
-        });
-        
-
-        init();
-        animate();
 
         function init() {
 
@@ -102,10 +101,23 @@
 
             container.appendChild( renderer.domElement );
 
-            //
-
             window.addEventListener( 'resize', onWindowResize, false );
-
+            
+            $("#form").submit(
+            function (e) {
+                e.preventDefault();
+                msg = {"msg": "working", "py": $("#pysource").val() + "\n",
+                       "width": 800, "height": 800, "rtype": $("#rtype").val() };
+                socket.send(JSON.stringify(msg));
+            });
+            $("#vconnect").click(
+            function (e) {
+                vconnect();
+            });
+            
+            $("#rtype").attr("disabled", "disabled");
+            $("#pysource").attr("disabled", "disabled");
+            $("#go").attr("disabled", "disabled");
         }
 
         function onWindowResize() {
@@ -158,11 +170,16 @@
                 //var mat = new THREE.MeshBasicMaterial( { color: 0xff0000 } ) 
                 
                 mesh = new THREE.Mesh( geometry, shaderMaterial);
+                mesh.doubleSided = true;
                 scene.add( mesh );
             } );
         }
 
 
+        
+        $(document).ready(function(){
+            init();
+            animate();
         });
 </script>
 </head>
@@ -207,7 +224,8 @@
 
     </script>
 
-
+    host: <input id="vhost" type="text" value="localhost"/> port: <input id="vport" type="text" value="9876"><button id="vconnect">Connect</button><br>
+    <div id="connstat">(Not connected)</div>
     <form id="form">
         rtype:<br>
         <select id="rtype">
@@ -219,7 +237,7 @@
 OpenDatabase("noise.silo")
 AddPlot("Pseudocolor","hardyglobal")
 DrawPlots()</textarea>
-        <button>Send</button><br>
+        <button id="go">Send</button><br>
     </form>
     <hr>
     <div id="info"></div>

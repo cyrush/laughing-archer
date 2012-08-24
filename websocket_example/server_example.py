@@ -9,10 +9,11 @@ import thread
 import base64
 from visit import *
 from GetJSON import *
+import threading
 
 import SocketServer
 
-class TCPServer(SocketServer.TCPServer): 
+class TCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): 
     allow_reuse_address = True
 
 class WebSocketsHandler(SocketServer.StreamRequestHandler):
@@ -106,6 +107,10 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
 if __name__ == "__main__":
     server = TCPServer(
         ("localhost", 9876), WebSocketsHandler)
-    server.allow_reuse_address = True 
     #server.serve_forever()
-    thread.start_new_thread(server.serve_forever,())
+    # Start a thread with the server -- that thread will then start one
+    # more thread for each request
+    server_thread = threading.Thread(target=server.serve_forever)
+    # Exit the server thread when the main thread terminates
+    server_thread.daemon = True
+    server_thread.start()
