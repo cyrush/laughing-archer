@@ -1,6 +1,7 @@
 import struct
 import SocketServer
 import json
+import os
 from base64 import b64encode
 from hashlib import sha1
 from mimetools import Message
@@ -10,6 +11,7 @@ import base64
 from visit import *
 from GetJSON import *
 import threading
+import socket
 
 import SocketServer
 
@@ -114,8 +116,11 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
             self.send_message(json.dumps(res))
 
 if __name__ == "__main__":
+    print socket.gethostname()
     server = TCPServer(
-        ("localhost", 9876), WebSocketsHandler)
+        ('', 9876), WebSocketsHandler)
+    #    ("localhost", 8000), WebSocketsHandler)
+    #    (socket.gethostname(), 9876), WebSocketsHandler)
     #server.serve_forever()
     # Start a thread with the server -- that thread will then start one
     # more thread for each request
