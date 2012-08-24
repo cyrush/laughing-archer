@@ -194,12 +194,14 @@
         uniform vec3 lightdir;
         varying vec2 vUv;
         varying vec3 vNormal;
+        varying vec3 oNormal;
         varying float vDot;
         void main()
         {
             vUv = uv;
             vNormal = normalMatrix * normal;
-            vDot = max(dot(vNormal.xyz,normalize(lightdir)),0.0);
+            oNormal = normalMatrix * -normal;
+            vDot = abs(dot(vNormal.xyz,normalize(lightdir)));
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
         }
 
