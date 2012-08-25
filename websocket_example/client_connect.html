@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>WebSocket Client</title>
+    <style>
+        #output {
+            border: solid 1px #000;
+        }
+    </style>
+    <script src="jquery-1.8.0.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+    var camera, scene, renderer, controls,
+        socket, loader, mesh;
+    
+    function vconnect()
+    {
+        var host = "ws://" + $("#vhost").val() + ":" + $("#vport").val() + "/"
+         try {
+
+                if ( $.browser.mozilla ) {
+                    // firefox
+                    try{
+                        socket = new MozWebSocket(host);
+                    }catch(ex){
+                        socket = new WebSocket(host);
+                    }
+                        
+                } else {
+                    // other browsers
+                   socket = new WebSocket(host);
+                }
+
+                console.log("Host:", host);
+
+
+                socket.onopen = function (e) {
+                    console.log("Socket opened.");
+                };
+
+                socket.onclose = function (e) {
+                    console.log("Socket closed.");
+                    $("#connstat").html("(Not connected)");
+                    $("#rtype").attr("disabled", "disabled");
+                    $("#pysource").attr("disabled", "disabled");
+                    $("#go").attr("disabled", "disabled");
+                };
+
+                socket.onmessage = function (e) {
+                    var msg = JSON.parse(e.data);
+                    if(msg.rtype == "image")
+                    {
+                        $("#container").hide();
+                        $("#image_dest").html("<img src='" + msg.blob + "'/>");
+                        $("#image_dest").show();
+                    }
+                    else if(msg.rtype == "json")
+                    {
+                        $("#image_dest").hide();
+                        for(i=0;i<msg.blob.length;i++)
+                            monkeyfi(msg.blob[i])
+                        $("#container").show();
+                    }
+                    else
+                    {
+                        console.log("Socket message:", e.data);
+                        $("#info").html("<p><b>response:</b> " + msg.answer + "</p>")
+                    }
+
+                };
+
+                socket.onerror = function (e) {
+                    console.log("Socket error:", e);
+                };
+            $("#rtype").removeAttr("disabled"); 
+            $("#pysource").removeAttr("disabled"); 
+            $("#go").removeAttr("disabled"); 
+            $("#connstat").html("Connected to: " + host);
+            } catch (ex) {
+                console.log("Socket exception:", ex);
+            }
+    }
+    
+
+
+        function init() {
+            $("#form").submit(
+            function (e) {
+                e.preventDefault();
+                msg = {"msg": "working", "py": $("#pysource").val() + "\n",
+                       "width": 800, "height": 800, "rtype": $("#rtype").val() };
+                socket.send(JSON.stringify(msg));
+            });
+            $("#vconnect").click(
+            function (e) {
+                vconnect();
+            });
+               $("#ref").click(
+                function (e) {
+                     msg = {"msg": "working", "py": $("#pysource").val() + "\n",
+                               "width": 800, "height": 800, "rtype": $("#rtype").val() };
+                        socket.send(JSON.stringify(msg));
+                });
+            $("#rtype").attr("disabled", "disabled");
+            $("#pysource").attr("disabled", "disabled");
+            $("#go").attr("disabled", "disabled");
+        }
+
+
+        
+        $(document).ready(function(){
+            init();
+        });
+</script>
+</head>
+<body>
+
+    host: <input id="vhost" type="text" value="localhost"/><br> 
+    port: <input id="vport" type="text" value="9876"><br>
+    <button id="vconnect">Connect</button><br>
+    <div id="connstat">(Not connected)</div>
+    <form id="form">
+        rtype:<br>
+        <select id="rtype">
+         <option value="image">Image</option>
+          <option value="json">Geometry</option>
+        </select><br>
+        py: <br>
+        <textarea id="pysource" cols="40" rows="10">
+Source("example2.py")</textarea>
+<br><button id="go">Send</button><br>
+    </form>
+<br><button id="ref">Refresh</button><br>
+    <hr>
+    <div id="info"></div>
+    <div id="image_dest"></div>
+    <div id="container"></div>
+ 
+</body>
+</html>

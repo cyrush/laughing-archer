@@ -1,9 +1,9 @@
 DeleteAllPlots()
 OpenDatabase("noise.silo")
-AddPlot("Pseudocolor","hardyglobal")
+AddPlot("Pseudocolor","radial")
 AddOperator("Isosurface")
 iatts = IsosurfaceAttributes()
 iatts.contourNLevels = 4
-iatts.variable = "default"
+iatts.variable = "hardyglobal"
 SetOperatorOptions(iatts)
 DrawPlots()
